@@ -1,0 +1,39 @@
+---
+StartAt: Disable?
+States:
+  Disable?:
+    Type: Choice
+    Default: Enable
+    Choices:
+      - Next: Disable
+        Variable: $.actions[0].value
+        StringEquals: disable
+  Disable:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:eventbridge:disableRule
+    Next: UpdateHome
+    ResultPath: $.state
+    Parameters:
+      Name: ${reddit_dequeue_rule_name}
+  Enable:
+    Type: Task
+    Resource: arn:aws:states:::aws-sdk:eventbridge:enableRule
+    Next: UpdateHome
+    ResultPath: $.state
+    Parameters:
+      Name: ${reddit_dequeue_rule_name}
+  UpdateHome:
+    Type: Task
+    Resource: arn:aws:states:::events:putEvents
+    End: true
+    Parameters:
+      Entries:
+        - EventBusName: ${event_bus_name}
+          Source: slack/beta
+          DetailType: event
+          Detail:
+            team_id.$: $.user.team_id
+            api_app_id.$: $.api_app_id
+            event:
+              type: app_home_opened
+              user.$: $.user.id

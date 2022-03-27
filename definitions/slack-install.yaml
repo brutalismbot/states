@@ -78,6 +78,7 @@ States:
               APP_ID.$: $.app_id
               CHANNEL_ID.$: $.incoming_webhook.channel_id
               CHANNEL_NAME.$: $.incoming_webhook.channel
+              SCOPE.$: $.scope
               TEAM_ID.$: $.team.id
               TEAM_NAME.$: $.team.name
               WEBHOOK_URL.$: $.incoming_webhook.url

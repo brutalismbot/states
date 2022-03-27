@@ -491,9 +491,13 @@ module "slack_post_channel" {
 
 data "aws_iam_policy_document" "slack_uninstall" {
   statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:BatchWriteItem", "dynamodb:Query"]
-    resources = ["${aws_dynamodb_table.table.arn}/index/SlackTeam"]
+    sid     = "DynamoDB"
+    actions = ["dynamodb:BatchWriteItem", "dynamodb:Query"]
+
+    resources = [
+      aws_dynamodb_table.table.arn,
+      "${aws_dynamodb_table.table.arn}/index/SlackTeam"
+    ]
   }
 
   statement {

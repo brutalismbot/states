@@ -381,6 +381,44 @@ module "slack_beta_enable_disable" {
   }
 }
 
+##############################
+#   SLACK BETA LINK SHARED   #
+##############################
+
+data "aws_iam_policy_document" "slack_beta_link_shared" {
+  statement {
+    sid     = "DynamoDB"
+    actions = ["dynamodb:Query"]
+
+    resources = [
+      aws_dynamodb_table.table.arn,
+      "${aws_dynamodb_table.table.arn}/index/Chrono",
+    ]
+  }
+
+  statement {
+    sid     = "Lambda"
+    actions = ["lambda:InvokeFunction"]
+    resources = [
+      data.terraform_remote_state.functions.outputs.functions.http.arn,
+      data.terraform_remote_state.functions.outputs.functions.slack_link_unfurl.arn,
+    ]
+  }
+}
+
+module "slack_beta_link_shared" {
+  source = "./state-machine"
+
+  name   = "slack-beta-link-shared"
+  policy = data.aws_iam_policy_document.slack_beta_link_shared.json
+
+  variables = {
+    http_function_arn     = data.terraform_remote_state.functions.outputs.functions.http.arn
+    slack_link_unfurl_arn = data.terraform_remote_state.functions.outputs.functions.slack_link_unfurl.arn
+    table_name            = aws_dynamodb_table.table.name
+  }
+}
+
 #####################
 #   SLACK INSTALL   #
 #####################

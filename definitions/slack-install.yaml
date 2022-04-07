@@ -13,46 +13,36 @@ States:
         POST.$: $[0]
         SLACK.$: $[1]
     Branches:
-      - StartAt: GetLastPostName
+      - StartAt: GetLastPost
         States:
-          GetLastPostName:
-            Type: Task
-            Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
-            Next: GetLastPost
-            ResultSelector:
-              NAME.$: $.Item.NAME.S
-            Parameters:
-              TableName: ${table_name}
-              ProjectionExpression: "#NAME"
-              ExpressionAttributeNames:
-                "#NAME": NAME
-              Key:
-                GUID:
-                  S: STATS/MAX
-                SORT:
-                  S: REDDIT/POST
           GetLastPost:
             Type: Task
-            Resource: arn:aws:states:::aws-sdk:dynamodb:getItem
+            Resource: arn:aws:states:::aws-sdk:dynamodb:query
             Next: TransformPost
             ResultSelector:
-              DATA.$: States.StringToJson($.Item.JSON.S)
-              CREATED_UTC.$: $.Item.CREATED_UTC.S
-              NAME.$: $.Item.NAME.S
-              PERMALINK.$: $.Item.PERMALINK.S
-              TITLE.$: $.Item.TITLE.S
-              TTL.$: States.StringToJson($.Item.TTL.N)
+              DATA.$: States.StringToJson($.Items[0].JSON.S)
+              CREATED_UTC.$: $.Items[0].CREATED_UTC.S
+              NAME.$: $.Items[0].NAME.S
+              PERMALINK.$: $.Items[0].PERMALINK.S
+              TITLE.$: $.Items[0].TITLE.S
+              TTL.$: States.StringToJson($.Items[0].TTL.N)
             Parameters:
               TableName: ${table_name}
+              IndexName: Chrono
+              KeyConditionExpression: SORT = :SORT
+              FilterExpression: "#STATE = :STATE"
               ProjectionExpression: CREATED_UTC,JSON,#NAME,PERMALINK,TITLE,#TTL
+              ScanIndexForward: false
+              Limit: 2
               ExpressionAttributeNames:
                 "#NAME": NAME
+                "#STATE": STATE
                 "#TTL": TTL
-              Key:
-                GUID:
-                  S.$: $.NAME
-                SORT:
+              ExpressionAttributeValues:
+                ":SORT":
                   S: REDDIT/POST
+                ":STATE":
+                  S: POSTED
           TransformPost:
             Type: Task
             Resource: ${slack_transform_function_arn}
@@ -81,6 +71,7 @@ States:
               SCOPE.$: $.scope
               TEAM_ID.$: $.team.id
               TEAM_NAME.$: $.team.name
+              USER_ID.$: $.authed_user.id
               WEBHOOK_URL.$: $.incoming_webhook.url
       - StartAt: GetDynamoDBItem
         States:

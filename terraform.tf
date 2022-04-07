@@ -387,9 +387,13 @@ module "slack_beta_enable_disable" {
 
 data "aws_iam_policy_document" "slack_install" {
   statement {
-    sid       = "DynamoDB"
-    actions   = ["dynamodb:GetItem", "dynamodb:PutItem"]
-    resources = [aws_dynamodb_table.table.arn]
+    sid     = "DynamoDB"
+    actions = ["dynamodb:PutItem", "dynamodb:Query"]
+
+    resources = [
+      aws_dynamodb_table.table.arn,
+      "${aws_dynamodb_table.table.arn}/index/Chrono",
+    ]
   }
 
   statement {

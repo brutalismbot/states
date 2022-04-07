@@ -1,9 +1,9 @@
 ---
-StartAt: Parallelize
+StartAt: Extract
 States:
-  Parallelize:
+  Extract:
     Type: Parallel
-    Next: GetEvents
+    Next: Transform
     ResultSelector:
       MAX_CREATED_UTC.$: $[0]
       POST.$: $[1]
@@ -47,14 +47,27 @@ States:
                   S.$: $.NAME
                 PERMALINK:
                   S.$: $.PERMALINK
+                STATE:
+                  S: IN_REVIEW
                 TITLE:
                   S.$: $.TITLE
                 TTL:
                   N.$: States.JsonToString($.TTL)
-  GetEvents:
+  Transform:
     Type: Parallel
-    Next: PutEvents
+    Next: Load
     ResultSelector:
+      Update:
+        TableName: ${table_name}
+        UpdateExpression: SET STATE = :STATE
+        ExpressionAttributeValues:
+          ":STATE":
+            S: POSTED
+        Key:
+          GUID:
+            S.$: $[0].NAME
+          SORT:
+            S: REDDIT/POST
       Entries:
         - EventBusName: ${event_bus_name}
           Source: reddit
@@ -154,9 +167,28 @@ States:
                   S: STATS/MAX
                 SORT:
                   S: REDDIT/POST
-  PutEvents:
-    Type: Task
-    Resource: arn:aws:states:::events:putEvents
+  Load:
+    Type: Parallel
     End: true
-    Parameters:
-      Entries.$: $.Entries
+    Branches:
+      - StartAt: MarkScreened
+        States:
+          MarkScreened:
+            Type: Task
+            Resource: arn:aws:states:::aws-sdk:dynamodb:updateItem
+            End: true
+            InputPath: $.Update
+            Parameters:
+              TableName.$: $.TableName
+              UpdateExpression.$: $.UpdateExpression
+              ExpressionAttributeNames.$: $.ExpressionAttributeNames
+              ExpressionAttributeValues.$: $.ExpressionAttributeValues
+              Key.$: $.Key
+      - StartAt: PutEvents
+        States:
+          PutEvents:
+            Type: Task
+            Resource: arn:aws:states:::events:putEvents
+            End: true
+            Parameters:
+              Entries.$: $.Entries

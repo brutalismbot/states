@@ -59,13 +59,13 @@ provider "aws" {
 #################
 
 variable "AWS_ROLE_ARN" {}
+variable "wait_time_seconds" { default = 14400 }
 
 ##############
 #   LOCALS   #
 ##############
 
 locals {
-  four_hours = 14400
   tags = {
     App  = "Brutalismbot"
     Name = "Brutalismbot"
@@ -237,7 +237,7 @@ module "reddit_post" {
     slack_transform_function_arn   = data.terraform_remote_state.functions.outputs.functions.slack_transform.arn
     table_name                     = aws_dynamodb_table.table.name
     twitter_transform_function_arn = data.terraform_remote_state.functions.outputs.functions.twitter_transform.arn
-    timeout_seconds                = local.four_hours
+    wait_time_seconds              = var.wait_time_seconds
   }
 }
 
@@ -271,7 +271,7 @@ module "reddit_reject" {
 }
 
 #####################
-#   REDDIT VERIFY   #
+#   REDDIT SCREEN   #
 #####################
 
 data "aws_iam_policy_document" "reddit_screen" {
@@ -302,7 +302,7 @@ module "reddit_screen" {
     array_function_arn = data.terraform_remote_state.functions.outputs.functions.array.arn
     http_function_arn  = data.terraform_remote_state.functions.outputs.functions.http.arn
     table_name         = aws_dynamodb_table.table.name
-    timeout_seconds    = local.four_hours
+    wait_time_seconds  = var.wait_time_seconds
   }
 }
 

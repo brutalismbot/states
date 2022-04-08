@@ -55,11 +55,14 @@ States:
                   N.$: States.JsonToString($.TTL)
   Transform:
     Type: Parallel
-    Next: Load
+    Next: Wait
     ResultSelector:
       Update:
         TableName: ${table_name}
-        UpdateExpression: SET STATE = :STATE
+        UpdateExpression: "SET #STATE = :STATE"
+        ExpressionAttributeNames:
+          "#STATE":
+            S: STATE
         ExpressionAttributeValues:
           ":STATE":
             S: POSTED
@@ -103,7 +106,7 @@ States:
           SendVerify:
             Type: Task
             Resource: arn:aws:states:::events:putEvents
-            Next: Wait
+            End: true
             ResultPath: $.VALIDATION
             Parameters:
               Entries:
@@ -113,10 +116,6 @@ States:
                   Detail:
                     AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$: $$.Execution.Id
                     POST.$: $
-          Wait:
-            Type: Wait
-            Seconds: ${timeout_seconds}
-            End: true
       - StartAt: GetTwitter
         States:
           GetTwitter:
@@ -167,6 +166,10 @@ States:
                   S: STATS/MAX
                 SORT:
                   S: REDDIT/POST
+  Wait:
+    Type: Wait
+    Seconds: ${wait_time_seconds}
+    Next: Load
   Load:
     Type: Parallel
     End: true

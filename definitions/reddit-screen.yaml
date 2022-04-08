@@ -92,7 +92,7 @@ States:
   Wait:
     Type: Wait
     Next: StripControls
-    Seconds: ${timeout_seconds}
+    Seconds: ${wait_time_seconds}
   StripControls:
     Type: Task
     Resource: ${array_function_arn}
